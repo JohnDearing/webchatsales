@@ -12,6 +12,8 @@ async function getApp(): Promise<INestApplication> {
     const allowedOrigins = [
       'https://www.webchatsales.com',
       'https://webchatsales.com',
+      'https://webchatsales-uwab.vercel.app',
+      'https://webchatsales-vert.vercel.app',
       process.env.FRONTEND_URL,
     ].filter(Boolean) as string[];
 
