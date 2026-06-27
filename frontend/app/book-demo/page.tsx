@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { API_BASE_URL } from '@/app/config/api';
 
 function BookDemoContent() {
   const router = useRouter();
@@ -85,7 +86,7 @@ function BookDemoContent() {
     const checkExistingBooking = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000'}/api/book/check-session/${sessionId}`
+          `${API_BASE_URL}/api/book/check-session/${sessionId}`
         );
         const data = await response.json();
         
@@ -162,7 +163,7 @@ function BookDemoContent() {
       const dateTime = new Date(`${dateString}T${selectedTime}`);
       const timeSlotISO = dateTime.toISOString();
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000'}/api/chat/book-demo`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/book-demo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

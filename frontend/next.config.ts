@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
+import { PRODUCTION_API_URL } from "./config/urls";
 
-const apiUrl = (
-  process.env.NEXT_PUBLIC_API_URL || "https://webchatsales-swart.vercel.app"
+const apiProxyTarget = (
+  process.env.API_PROXY_TARGET || PRODUCTION_API_URL
 ).replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
@@ -9,7 +10,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${apiUrl}/api/:path*`,
+        destination: `${apiProxyTarget}/api/:path*`,
       },
     ];
   },

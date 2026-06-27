@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { getAuthHeaders, handleAuthError, getAdminUser, isSuperAdmin } from '../../utils/auth';
 import { buildWidgetEmbedScript } from '../../config/widget';
+import { API_BASE_URL } from '@/app/config/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 const FRONTEND_URL =
   typeof window !== 'undefined'
     ? window.location.origin

@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { getAuthHeaders, handleAuthError } from '../../utils/auth';
 import { buildWidgetEmbedScript } from '../../config/widget';
+import { API_BASE_URL } from '@/app/config/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 const FRONTEND_URL = typeof window !== 'undefined'
   ? window.location.origin
   : (process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000');

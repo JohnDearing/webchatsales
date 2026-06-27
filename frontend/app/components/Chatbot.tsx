@@ -7,6 +7,7 @@ import { MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useChatbot } from './ChatbotContext';
 import { DEFAULT_WIDGET_KEY } from '../config/site';
+import { API_BASE_URL } from '@/app/config/api';
 
 interface Message {
   id: string;
@@ -15,7 +16,6 @@ interface Message {
   timestamp: Date;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 
 const getEmbedMode = (): boolean => {
   if (typeof window === 'undefined') return false;
