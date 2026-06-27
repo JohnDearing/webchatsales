@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #060a08;
+  --ink: #e9fff6;
+  --muted: #9fd8c5;
+  --emerald: #00ff99;
+  --emerald2: #00c983;
+  --line: #153f30;
+  --panel: #0a1310;
+  --glass: #0d1814cc;
+  --silver: #dde7e3;
+  --shadow: #0009;
+  
+  /* Legacy variables for compatibility */
+  --background: var(--bg);
+  --foreground: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Gradient backgrounds for key sections */
+.bg-gradient-emerald {
+  background: linear-gradient(135deg, var(--emerald), var(--emerald2));
+}
+
+/* Custom scrollbar for emerald theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--emerald2);
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--emerald);
+  outline-offset: 2px;
+}
+
+/* Placeholder styles */
+::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* Input field visibility */
+input[type="text"] {
+  color: var(--ink) !important;
+}
+
+input[type="text"]::placeholder {
+  color: var(--muted) !important;
+  opacity: 0.8 !important;
+}
+
+/* Fix list styling in chat messages */
+.prose ol,
+.prose ul {
+  list-style-position: outside !important;
+  padding-left: 1.5rem !important;
+}
+
+.prose ol li,
+.prose ul li {
+  display: list-item !important;
+  padding-left: 0.5rem !important;
+  margin-left: 0 !important;
+}
+
+.prose ol li::marker,
+.prose ul li::marker {
+  color: var(--emerald);
+  font-weight: bold;
+}
+
+/* Ensure list items don't break */
+.prose li {
+  display: list-item !important;
+  list-style-position: outside !important;
+}
+
+/* Custom ping animation for loader */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* ── Dashboard mobile layout ── */
+.dashboard-page {
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+.dashboard-tabs-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.dashboard-tabs-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.dashboard-tabs-inner {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1.25rem;
+  min-width: min-content;
+  padding-bottom: 1px;
+}
+
+.dashboard-tab-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.875rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+@media (min-width: 640px) {
+  .dashboard-tab-btn {
+    padding: 1rem 0.25rem;
+    font-size: 0.875rem;
+  }
+}
+
+.dashboard-table-shell {
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dashboard-table-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .dashboard-section-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.dashboard-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .dashboard-toolbar {
+    width: auto;
+    flex-wrap: nowrap;
+  }
+}
+
+.dashboard-pagination {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+@media (min-width: 640px) {
+  .dashboard-pagination {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
