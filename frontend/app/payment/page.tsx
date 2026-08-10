@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PaymentForm, CreditCard } from 'react-square-web-payments-sdk';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { API_BASE_URL } from '@/app/config/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 const SQUARE_APPLICATION_ID = process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID || 'sandbox-sq0idb-EzWSCphEv3i3RqREob8OpQ';
 const SQUARE_LOCATION_ID = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID || 'LWHJ1BYBBQMF0';
 

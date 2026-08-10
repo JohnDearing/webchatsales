@@ -5,8 +5,8 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { format } from 'date-fns';
 
 import { getAuthHeaders, handleAuthError } from '../../utils/auth';
+import { API_BASE_URL } from '@/app/config/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 
 interface DashboardStatsProps {
   onViewConversation: (sessionId: string) => void;

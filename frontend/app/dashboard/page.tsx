@@ -15,8 +15,8 @@ import ClientsPanel from '../components/dashboard/ClientsPanel';
 import PlansPanel from '../components/dashboard/PlansPanel';
 import InstallGuidePanel from '../components/dashboard/InstallGuidePanel';
 import { isSuperAdmin } from '../utils/auth';
+import { API_BASE_URL } from '@/app/config/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 
 type TabType = 'overview' | 'conversations' | 'leads' | 'tickets' | 'payments' | 'bookings' | 'intake' | 'clients' | 'plans' | 'install';
 

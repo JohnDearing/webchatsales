@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { getAuthHeaders, handleAuthError } from '../../utils/auth';
+import { API_BASE_URL } from '@/app/config/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 const WIDGET_BASE_URL =
   process.env.NEXT_PUBLIC_WIDGET_URL ||
   process.env.NEXT_PUBLIC_FRONTEND_URL ||
