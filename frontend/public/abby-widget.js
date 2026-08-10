@@ -37,16 +37,7 @@
     if (override) {
       return override.replace(/\/$/, '');
     }
-    const base = getBaseUrl();
-    // Local dev: frontend :3000 -> API :9000
-    if (base.includes('localhost:3000') || base.includes('127.0.0.1:3000')) {
-      return base.replace(':3000', ':9000');
-    }
-    // Production: API is on separate Vercel deployment (not www.webchatsales.com)
-    if (base.includes('webchatsales.com')) {
-      return 'https://webchatsales-swart.vercel.app';
-    }
-    return base;
+    return getBaseUrl().replace(':3000', ':9000');
   }
 
   const CONFIG = {

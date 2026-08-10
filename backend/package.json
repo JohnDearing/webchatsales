@@ -11,6 +11,7 @@
     "seed:tenants": "ts-node --transpile-only src/scripts/seed-tenants.ts",
     "verify:milestone5": "ts-node --transpile-only src/scripts/verify-milestone5.ts",
     "verify:milestone6": "ts-node --transpile-only src/scripts/verify-milestone6.ts",
+    "verify:milestone8": "ts-node --transpile-only src/scripts/verify-milestone8.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

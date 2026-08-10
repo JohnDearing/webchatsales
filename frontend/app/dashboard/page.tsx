@@ -12,12 +12,13 @@ import BookingsList from '../components/dashboard/BookingsList';
 import ConversationDetail from '../components/dashboard/ConversationDetail';
 import IntakeSubmissionsList from '../components/dashboard/IntakeSubmissionsList';
 import ClientsPanel from '../components/dashboard/ClientsPanel';
+import PlansPanel from '../components/dashboard/PlansPanel';
 import InstallGuidePanel from '../components/dashboard/InstallGuidePanel';
 import { isSuperAdmin } from '../utils/auth';
-import { API_BASE_URL } from '@/app/config/api';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 
-type TabType = 'overview' | 'conversations' | 'leads' | 'tickets' | 'payments' | 'bookings' | 'intake' | 'clients' | 'install';
+type TabType = 'overview' | 'conversations' | 'leads' | 'tickets' | 'payments' | 'bookings' | 'intake' | 'clients' | 'plans' | 'install';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -27,7 +28,6 @@ export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [clientsEditId, setClientsEditId] = useState<string | null>(null);
-  const [installClientId, setInstallClientId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check authentication
@@ -158,12 +158,11 @@ export default function DashboardPage() {
               { id: 'payments', label: 'Payments' },
               { id: 'bookings', label: 'Bookings' },
               { id: 'intake', label: 'Intake' },
-              ...(userRole === 'super_admin'
-                ? [
-                    { id: 'clients', label: 'Clients' },
-                    { id: 'install', label: 'Install Guide' },
-                  ]
-                : []),
+              ...(userRole === 'super_admin' ? [
+                { id: 'clients', label: 'Clients' },
+                { id: 'install', label: 'Install Guide' },
+                { id: 'plans', label: 'Plans & Usage' },
+              ] : []),
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -211,20 +210,13 @@ export default function DashboardPage() {
           />
         )}
         {activeTab === 'clients' && userRole === 'super_admin' && (
-          <ClientsPanel
-            initialEditClientId={clientsEditId}
-            onClearInitialEdit={() => setClientsEditId(null)}
-            onOpenInstallGuide={(clientId) => {
-              setInstallClientId(clientId);
-              setActiveTab('install');
-            }}
-          />
+          <ClientsPanel initialEditClientId={clientsEditId} onClearInitialEdit={() => setClientsEditId(null)} />
+        )}
+        {activeTab === 'plans' && userRole === 'super_admin' && (
+          <PlansPanel />
         )}
         {activeTab === 'install' && userRole === 'super_admin' && (
-          <InstallGuidePanel
-            initialClientId={installClientId}
-            onClearInitialClient={() => setInstallClientId(null)}
-          />
+          <InstallGuidePanel />
         )}
       </main>
     </div>

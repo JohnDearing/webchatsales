@@ -12,6 +12,7 @@ import { NotificationService } from '../notification/notification.service';
 import { PromptBuilderService } from './prompt-builder.service';
 import { SalesAgentPromptService } from './sales-agent-prompt.service';
 import { TenantService } from '../tenant/tenant.service';
+import { UsageService } from '../usage/usage.service';
 import { config } from '../../config/config';
 
 @Injectable()
@@ -39,6 +40,7 @@ export class ChatService {
     private promptBuilder: PromptBuilderService,
     private salesAgentPrompt: SalesAgentPromptService,
     private tenantService: TenantService,
+    private usageService: UsageService,
   ) {
     // Get OpenAI API key from environment variables
     const openaiApiKey = 
@@ -805,7 +807,18 @@ Respond with JSON: {"isInvalid": true/false, "reason": "brief explanation"}`;
 
   async *streamChatResponse(clientId: string, sessionId: string, userMessage: string) {
     console.log(`[ChatService] Starting streamChatResponse for clientId: ${clientId}, sessionId: ${sessionId}, message: "${userMessage.substring(0, 50)}..."`);
-    
+
+    const limitCheck = await this.usageService.checkChatAllowed(clientId);
+    if (!limitCheck.allowed) {
+      const blockedMessage =
+        limitCheck.reason ||
+        'Chat is temporarily unavailable. Please contact support or upgrade your plan.';
+      yield blockedMessage;
+      return;
+    }
+
+    const isOverageChat = !!limitCheck.isOverage;
+
     // Get or create conversation
     let conversation = await this.getConversation(clientId, sessionId);
     if (!conversation) {
@@ -1128,6 +1141,41 @@ Respond with JSON: {"isInvalid": true/false, "reason": "brief explanation"}`;
       if (fullResponse && fullResponse.trim()) {
         await this.addMessage(clientId, sessionId, 'assistant', fullResponse);
         console.log(`[ChatService] Assistant response saved: ${fullResponse.length} chars`);
+
+        // Record usage after successful AI response
+        this.usageService
+          .recordChatUsage(clientId, userMessage, fullResponse, isOverageChat)
+          .then(async (summary) => {
+            const client = await this.tenantService.findById(clientId);
+            if (!client || client.isPlatformTenant) return;
+
+            if (this.usageService.shouldSendLimitWarning(client, summary.chatPercent)) {
+              await this.notificationService.notifyUsageLimit({
+                clientId,
+                type: 'warning',
+                chatsUsed: summary.chatsUsed,
+                chatLimit: summary.chatLimit,
+                chatPercent: summary.chatPercent,
+                planName: summary.planName,
+              });
+              await this.usageService.markLimitNotificationSent(clientId, 'warning');
+            } else if (
+              this.usageService.shouldSendLimitReached(client, summary.chatPercent)
+            ) {
+              await this.notificationService.notifyUsageLimit({
+                clientId,
+                type: 'reached',
+                chatsUsed: summary.chatsUsed,
+                chatLimit: summary.chatLimit,
+                chatPercent: summary.chatPercent,
+                planName: summary.planName,
+              });
+              await this.usageService.markLimitNotificationSent(clientId, 'reached');
+            }
+          })
+          .catch((err) =>
+            console.error('[ChatService] Error recording usage:', err),
+          );
         
         // Process conversation for lead qualification (support detection already done earlier)
         // Note: Support ticket creation already happened before generating response

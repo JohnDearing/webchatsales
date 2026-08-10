@@ -478,4 +478,79 @@ export class NotificationService {
       console.error(`[NotificationService] ❌ Failed to send new lead notification:`, error);
     }
   }
+
+  /**
+   * Notify client owner when approaching or reaching usage limits
+   */
+  async notifyUsageLimit(data: {
+    clientId?: string;
+    type: 'warning' | 'reached';
+    chatsUsed: number;
+    chatLimit: number;
+    chatPercent: number;
+    planName: string;
+  }) {
+    const notificationEmail = await this.getNotificationEmail(data.clientId);
+    if (!notificationEmail) return;
+
+    const isWarning = data.type === 'warning';
+    const headerColor = isWarning ? '#f59e0b' : '#ef4444';
+    const badgeText = isWarning ? 'APPROACHING LIMIT' : 'LIMIT REACHED';
+    const title = isWarning
+      ? '⚠️ Usage Warning — 80% of Monthly Chats Used'
+      : '🚨 Monthly Chat Limit Reached';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .header { background: #000; color: ${headerColor}; padding: 20px; text-align: center; }
+            .header h1 { margin: 0; font-size: 22px; }
+            .badge { display: inline-block; background: ${headerColor}; color: #000; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-top: 8px; }
+            .content { padding: 24px; background: #f9fafb; }
+            .meter { background: #e5e7eb; border-radius: 8px; height: 24px; overflow: hidden; margin: 16px 0; }
+            .meter-fill { background: ${headerColor}; height: 100%; width: ${Math.min(100, data.chatPercent)}%; }
+            .footer { padding: 16px 24px; background: #f3f4f6; text-align: center; font-size: 12px; color: #9ca3af; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${title}</h1>
+              <div class="badge">${badgeText}</div>
+            </div>
+            <div class="content">
+              <p>Your Abby chatbot on the <strong>${data.planName}</strong> plan has used <strong>${data.chatsUsed.toLocaleString()}</strong> of <strong>${data.chatLimit.toLocaleString()}</strong> monthly chats (${data.chatPercent}%).</p>
+              <div class="meter"><div class="meter-fill"></div></div>
+              ${
+                isWarning
+                  ? '<p>Consider upgrading before you hit your limit so visitors can keep chatting without interruption.</p>'
+                  : '<p>New visitor chats may be blocked until you upgrade or your billing period resets. Upgrade now to restore service immediately.</p>'
+              }
+              <p style="font-size: 13px; color: #6b7280;">Manage your plan in the WebChatSales admin dashboard.</p>
+            </div>
+            <div class="footer">
+              <p>WebChatSales — Usage & Billing Notifications</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    try {
+      await this.emailService.sendEmail(
+        notificationEmail,
+        isWarning
+          ? `⚠️ Abby usage at ${data.chatPercent}% — ${data.chatsUsed}/${data.chatLimit} chats`
+          : `🚨 Abby chat limit reached — ${data.chatsUsed}/${data.chatLimit} chats`,
+        html,
+      );
+      console.log(`[NotificationService] ✅ Usage limit notification (${data.type}) sent to ${notificationEmail}`);
+    } catch (error) {
+      console.error('[NotificationService] ❌ Failed to send usage limit notification:', error);
+    }
+  }
 }

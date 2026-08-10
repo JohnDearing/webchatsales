@@ -430,25 +430,9 @@ export class TenantService {
   /**
    * Build widget preview link for a client
    */
-  private getFrontendBase(): string {
-    return (
-      process.env.FRONTEND_URL?.replace(/\/$/, "") ||
-      config.site.frontendBaseUrl ||
-      "http://localhost:3000"
-    );
-  }
-
-  private getApiBase(): string {
-    return (
-      process.env.SERVER_URL?.replace(/\/$/, "") ||
-      config.site.apiBaseUrl ||
-      process.env.FRONTEND_URL?.replace(/\/$/, "").replace(":3000", ":9000") ||
-      "http://localhost:9000"
-    );
-  }
-
   buildWidgetLink(widgetKey: string): string {
-    const frontendBase = this.getFrontendBase();
+    const frontendBase =
+      process.env.FRONTEND_URL?.replace(/\/$/, "") || "http://localhost:3000";
     return `${frontendBase}/widget?widgetKey=${encodeURIComponent(widgetKey)}`;
   }
 
@@ -456,9 +440,9 @@ export class TenantService {
    * Build embed script snippet for a client
    */
   buildWidgetEmbedScript(widgetKey: string): string {
-    const frontendBase = this.getFrontendBase();
-    const apiBase = this.getApiBase();
-    return `<script src="${frontendBase}/abby-widget.js" data-widget-key="${widgetKey}" data-api-url="${apiBase}"></script>`;
+    const frontendBase =
+      process.env.FRONTEND_URL?.replace(/\/$/, "") || "http://localhost:3000";
+    return `<script src="${frontendBase}/abby-widget.js" data-widget-key="${widgetKey}"><\/script>`;
   }
 
   /**
@@ -520,12 +504,9 @@ export class TenantService {
 
     return {
       success: true,
-      installVerified: domainValid || client.installVerified === true,
+      installVerified,
       domainValid,
       status: client.status,
-      message: domainValid
-        ? undefined
-        : `Ping received from ${domain || "unknown host"} — add this domain to Allowed domains in the client settings`,
     };
   }
 
@@ -550,9 +531,6 @@ export class TenantService {
       installVerified: client.installVerified === true,
       lastWidgetPingAt: client.lastWidgetPingAt,
       lastWidgetPingDomain: client.lastWidgetPingDomain,
-      lastPingDomainValid: client.lastWidgetPingDomain
-        ? await this.validateDomain(client._id, client.lastWidgetPingDomain)
-        : false,
       allowedDomains: client.allowedDomains || [],
       testActivatedAt: client.testActivatedAt,
       activatedAt: client.activatedAt,

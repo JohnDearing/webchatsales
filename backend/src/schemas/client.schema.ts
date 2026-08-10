@@ -86,6 +86,49 @@ export class ActivationLog {
 export const ActivationLogSchema = SchemaFactory.createForClass(ActivationLog);
 
 /**
+ * Monthly usage counters — reset automatically each billing period
+ */
+@Schema({ _id: false })
+export class UsagePeriod {
+  @Prop({
+    default: () => {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    },
+  })
+  periodStart: Date;
+
+  @Prop({ default: 0 })
+  chatsUsed: number;
+
+  @Prop({ default: 0 })
+  tokensUsed: number;
+
+  @Prop({ default: 0 })
+  estimatedCostUsd: number;
+
+  @Prop({ default: 0 })
+  overageChats: number;
+
+  @Prop()
+  lastResetAt?: Date;
+
+  @Prop({ default: false })
+  limitWarningSent: boolean;
+
+  @Prop({ default: false })
+  limitReachedSent: boolean;
+
+  @Prop({ default: 0 })
+  pendingOverageAmountUsd: number;
+
+  @Prop()
+  lastReconciledAt?: Date;
+}
+
+export const UsagePeriodSchema = SchemaFactory.createForClass(UsagePeriod);
+
+/**
  * Client Schema — The tenant model
  *
  * Each client represents one customer who has installed WebChatSales.
@@ -131,6 +174,16 @@ export class Client {
 
   @Prop()
   planExpiresAt: Date;
+
+  /** Per-client limit overrides (optional — falls back to PricingPlan) */
+  @Prop()
+  customChatLimit?: number;
+
+  @Prop()
+  customTokenLimit?: number;
+
+  @Prop({ type: UsagePeriodSchema, default: () => ({}) })
+  usage: UsagePeriod;
 
   // Client-specific contact info
   @Prop({ required: true })

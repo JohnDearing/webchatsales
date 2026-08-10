@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Conversation, ConversationDocument } from '../../schemas/conversation.schema';
 import { Lead, LeadDocument } from '../../schemas/lead.schema';
 import { SupportTicket, SupportTicketDocument } from '../../schemas/support-ticket.schema';
@@ -10,6 +10,7 @@ import {
   IntakeSubmission,
   IntakeSubmissionDocument,
 } from '../../schemas/intake-submission.schema';
+import { UsageService } from '../usage/usage.service';
 
 @Injectable()
 export class DashboardService {
@@ -21,9 +22,16 @@ export class DashboardService {
     @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
     @InjectModel(IntakeSubmission.name)
     private intakeSubmissionModel: Model<IntakeSubmissionDocument>,
+    private usageService: UsageService,
   ) {}
 
+  /** MongoDB aggregates require ObjectId — string clientId won't match */
+  private toObjectId(clientId: string): Types.ObjectId {
+    return new Types.ObjectId(clientId);
+  }
+
   async getDashboardStats(clientId: string) {
+    const tenantId = this.toObjectId(clientId);
     const [
       totalConversations,
       activeConversations,
@@ -60,26 +68,26 @@ export class DashboardService {
 
     // Calculate revenue
     const revenueData = await this.paymentModel.aggregate([
-      { $match: { clientId, status: 'completed' } },
+      { $match: { clientId: tenantId, status: 'completed' } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]);
     const totalRevenue = revenueData[0]?.total || 0;
 
     // Get leads by status
     const leadsByStatus = await this.leadModel.aggregate([
-      { $match: { clientId } },
+      { $match: { clientId: tenantId } },
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]);
 
     // Get tickets by priority
     const ticketsByPriority = await this.supportTicketModel.aggregate([
-      { $match: { clientId } },
+      { $match: { clientId: tenantId } },
       { $group: { _id: '$priority', count: { $sum: 1 } } },
     ]);
 
     // Get payments by status
     const paymentsByStatus = await this.paymentModel.aggregate([
-      { $match: { clientId } },
+      { $match: { clientId: tenantId } },
       { $group: { _id: '$status', count: { $sum: 1 }, total: { $sum: '$amount' } } },
     ]);
 
@@ -87,7 +95,7 @@ export class DashboardService {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const conversationsOverTime = await this.conversationModel.aggregate([
-      { $match: { clientId, createdAt: { $gte: thirtyDaysAgo } } },
+      { $match: { clientId: tenantId, createdAt: { $gte: thirtyDaysAgo } } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -96,6 +104,13 @@ export class DashboardService {
       },
       { $sort: { _id: 1 } },
     ]);
+
+    let usage = null;
+    try {
+      usage = await this.usageService.getUsageSummary(clientId);
+    } catch {
+      // Client may not exist yet during setup
+    }
 
     return {
       stats: {
@@ -120,6 +135,21 @@ export class DashboardService {
           total: totalBookings,
           scheduled: scheduledBookings,
         },
+        usage: usage
+          ? {
+              plan: usage.plan,
+              planName: usage.planName,
+              chatsUsed: usage.chatsUsed,
+              chatLimit: usage.chatLimit,
+              chatPercent: usage.chatPercent,
+              tokensUsed: usage.tokensUsed,
+              tokenLimit: usage.tokenLimit,
+              tokenPercent: usage.tokenPercent,
+              estimatedCostUsd: usage.estimatedCostUsd,
+              periodEnd: usage.periodEnd,
+              overageChats: usage.overageChats,
+            }
+          : null,
       },
       breakdowns: {
         leadsByStatus,

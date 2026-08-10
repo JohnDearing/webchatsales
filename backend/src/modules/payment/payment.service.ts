@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import { Payment, PaymentDocument } from '../../schemas/payment.schema';
 import { EmailService } from '../email/email.service';
 import { TenantService } from '../tenant/tenant.service';
+import { UsageService } from '../usage/usage.service';
 
 // Square SDK imports
 let SquareClient: any = null;
@@ -31,6 +32,7 @@ export class PaymentService {
     private configService: ConfigService,
     private emailService: EmailService,
     private tenantService: TenantService,
+    private usageService: UsageService,
   ) {
     this.squareAccessToken = 
       this.configService.get<string>('SQUARE_ACCESS_TOKEN') || 
@@ -263,6 +265,18 @@ export class PaymentService {
         if (payment.status === 'completed' && !payment.confirmationEmailSent) {
           payment.paidAt = new Date();
           payment.confirmationEmailSent = true;
+
+          // Upgrade client plan on successful payment
+          if (payment.clientId && payment.planType) {
+            try {
+              await this.usageService.applyPlanFromPayment(
+                payment.clientId.toString(),
+                payment.planType,
+              );
+            } catch (planError) {
+              console.error('[PaymentService] Error applying plan from payment:', planError);
+            }
+          }
           
           if (payment.userEmail) {
             try {
@@ -413,6 +427,15 @@ export class PaymentService {
       await paymentRecord.save();
 
       if (status === 'completed' && (userEmail || billingContact?.email)) {
+        // Upgrade client plan on successful payment
+        if (clientId && planType) {
+          try {
+            await this.usageService.applyPlanFromPayment(clientId, planType);
+          } catch (planError) {
+            console.error('[PaymentService] Error applying plan from payment:', planError);
+          }
+        }
+
         try {
           await this.emailService.sendPaymentConfirmation(
             userEmail || billingContact?.email || '',

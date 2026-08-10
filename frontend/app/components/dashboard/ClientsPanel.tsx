@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { getAuthHeaders, handleAuthError } from '../../utils/auth';
-import { buildWidgetEmbedScript } from '../../config/widget';
-import { API_BASE_URL } from '@/app/config/api';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 const FRONTEND_URL = typeof window !== 'undefined'
   ? window.location.origin
   : (process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000');
@@ -66,8 +65,6 @@ type DeploymentStatus = {
   installVerified: boolean;
   lastWidgetPingAt?: string;
   lastWidgetPingDomain?: string;
-  lastPingDomainValid?: boolean;
-  allowedDomains?: string[];
   canGoLive: boolean;
   widgetLink: string;
   widgetEmbedScript: string;
@@ -80,22 +77,6 @@ type DeploymentStatus = {
     timestamp?: string;
   }>;
 };
-
-function installStatusLabel(deployment: DeploymentStatus | null): { text: string; color: string } {
-  if (!deployment) {
-    return { text: 'Loading…', color: 'var(--muted)' };
-  }
-  if (deployment.installVerified) {
-    return { text: 'Yes — widget detected on allowed domain', color: 'var(--emerald)' };
-  }
-  if (deployment.lastWidgetPingAt && deployment.lastWidgetPingDomain) {
-    return {
-      text: `Ping from ${deployment.lastWidgetPingDomain} — add domain to Allowed domains`,
-      color: '#f59e0b',
-    };
-  }
-  return { text: 'Not yet — waiting for widget ping from client site', color: '#f59e0b' };
-}
 
 type ActivationLog = DeploymentStatus['recentLogs'][number];
 
@@ -224,11 +205,9 @@ function formToPayload(form: typeof emptyForm) {
 export default function ClientsPanel({
   initialEditClientId,
   onClearInitialEdit,
-  onOpenInstallGuide,
 }: {
   initialEditClientId?: string | null;
   onClearInitialEdit?: () => void;
-  onOpenInstallGuide?: (clientId: string) => void;
 } = {}) {
   const [clients, setClients] = useState<Client[]>([]);
   const [total, setTotal] = useState(0);
@@ -244,6 +223,18 @@ export default function ClientsPanel({
   const [deployment, setDeployment] = useState<DeploymentStatus | null>(null);
   const [activationLogs, setActivationLogs] = useState<ActivationLog[]>([]);
   const [isDeployAction, setIsDeployAction] = useState(false);
+  const [clientUsage, setClientUsage] = useState<{
+    chatsUsed: number;
+    chatLimit: number;
+    chatPercent: number;
+    tokensUsed: number;
+    tokenLimit: number;
+    estimatedCostUsd: number;
+    overageChats: number;
+    planName: string;
+  } | null>(null);
+
+  const PLAN_OPTIONS = ['trial', 'starter', 'pro', 'enterprise'];
 
   useEffect(() => {
     fetchClients();
@@ -295,7 +286,26 @@ export default function ClientsPanel({
     setMode('edit');
     setError('');
     setSuccess('');
+    setClientUsage(null);
     fetchDeploymentStatus(client._id);
+    if (!client.isPlatformTenant) {
+      fetchClientUsage(client._id);
+    }
+  };
+
+  const fetchClientUsage = async (clientId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/usage/client/${clientId}`, {
+        headers: getAuthHeaders(),
+      });
+      if (handleAuthError(response)) return;
+      const data = await response.json();
+      if (data.success) {
+        setClientUsage(data.data);
+      }
+    } catch {
+      // Usage may not be available yet
+    }
   };
 
   const fetchDeploymentStatus = async (clientId: string) => {
@@ -318,8 +328,6 @@ export default function ClientsPanel({
           installVerified: statusData.installVerified,
           lastWidgetPingAt: statusData.lastWidgetPingAt,
           lastWidgetPingDomain: statusData.lastWidgetPingDomain,
-          lastPingDomainValid: statusData.lastPingDomainValid,
-          allowedDomains: statusData.allowedDomains,
           canGoLive: statusData.canGoLive,
           widgetLink: statusData.widgetLink,
           widgetEmbedScript: statusData.widgetEmbedScript,
@@ -514,7 +522,7 @@ export default function ClientsPanel({
       ? `${FRONTEND_URL}/widget?widgetKey=${encodeURIComponent(selectedClient.widgetKey)}`
       : '';
     const embedScript = selectedClient
-      ? buildWidgetEmbedScript(selectedClient.widgetKey)
+      ? `<script src="${FRONTEND_URL}/abby-widget.js" data-widget-key="${selectedClient.widgetKey}"></script>`
       : '';
 
     return (
@@ -609,8 +617,8 @@ export default function ClientsPanel({
               <div className="grid sm:grid-cols-3 gap-3 mb-4 text-sm">
                 <div className="p-3 rounded border" style={{ borderColor: 'var(--line)' }}>
                   <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>Install verified</p>
-                  <p className="font-medium text-sm" style={{ color: installStatusLabel(deployment).color }}>
-                    {installStatusLabel(deployment).text}
+                  <p className="font-medium" style={{ color: deployment?.installVerified ? 'var(--emerald)' : '#f59e0b' }}>
+                    {deployment?.installVerified ? 'Yes — widget detected' : 'Not yet — add embed code to client site'}
                   </p>
                 </div>
                 <div className="p-3 rounded border" style={{ borderColor: 'var(--line)' }}>
@@ -696,6 +704,56 @@ export default function ClientsPanel({
                         {log.timestamp ? ` · ${format(new Date(log.timestamp), 'MMM d, HH:mm')}` : ''}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Plan & Usage — contractor clients only */}
+          {mode === 'edit' && selectedClient && !isPlatform && (
+            <section className="border rounded-lg p-4" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
+              <h3 className="font-semibold mb-3" style={{ color: 'var(--ink)' }}>Plan & Usage</h3>
+              <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className={labelClass} style={labelStyle}>Pricing plan</label>
+                  <select
+                    name="plan"
+                    value={form.plan}
+                    onChange={onFieldChange}
+                    className={inputClass}
+                    style={inputStyle}
+                  >
+                    {PLAN_OPTIONS.map((p) => (
+                      <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {clientUsage && (
+                <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                  <div className="p-3 rounded border" style={{ borderColor: 'var(--line)' }}>
+                    <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>Chats this month</p>
+                    <p className="font-medium" style={{ color: clientUsage.chatPercent >= 80 ? '#f59e0b' : 'var(--ink)' }}>
+                      {clientUsage.chatsUsed.toLocaleString()} / {clientUsage.chatLimit.toLocaleString()} ({clientUsage.chatPercent}%)
+                    </p>
+                  </div>
+                  <div className="p-3 rounded border" style={{ borderColor: 'var(--line)' }}>
+                    <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>Tokens used</p>
+                    <p className="font-medium" style={{ color: 'var(--ink)' }}>
+                      {clientUsage.tokensUsed.toLocaleString()} / {clientUsage.tokenLimit.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded border" style={{ borderColor: 'var(--line)' }}>
+                    <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>Est. OpenAI cost</p>
+                    <p className="font-medium" style={{ color: 'var(--emerald)' }}>
+                      ${clientUsage.estimatedCostUsd.toFixed(4)}
+                      {clientUsage.overageChats > 0 && (
+                        <span className="text-xs ml-2" style={{ color: '#f59e0b' }}>
+                          ({clientUsage.overageChats} overage)
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
               )}
@@ -839,28 +897,16 @@ export default function ClientsPanel({
           {/* Widget embed (contractor clients only) */}
           {mode === 'edit' && selectedClient && !isPlatform && (
             <section className="border rounded-lg p-4" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
-              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold" style={{ color: 'var(--ink)' }}>Widget Embed Code</h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {onOpenInstallGuide && selectedClient && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenInstallGuide(selectedClient._id)}
-                      className="text-xs px-2 py-1 rounded border"
-                      style={{ borderColor: 'var(--emerald)', color: 'var(--emerald)' }}
-                    >
-                      Full install guide →
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleRotateWidgetKey}
-                    className="text-xs px-2 py-1 rounded border"
-                    style={{ borderColor: 'var(--line)', color: 'var(--muted)' }}
-                  >
-                    Rotate key
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleRotateWidgetKey}
+                  className="text-xs px-2 py-1 rounded border"
+                  style={{ borderColor: 'var(--line)', color: 'var(--muted)' }}
+                >
+                  Rotate key
+                </button>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -984,6 +1030,7 @@ export default function ClientsPanel({
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>Business</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>Owner</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>Plan</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>Install</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>Notifications</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--muted)' }}>Created</th>
@@ -1025,6 +1072,15 @@ export default function ClientsPanel({
                       )}
                       {client.isActive === false && (
                         <span className="ml-1 px-2 py-1 text-xs rounded bg-red-500/20 text-red-400">inactive</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isPlatform ? (
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>—</span>
+                      ) : (
+                        <span className="px-2 py-1 text-xs rounded capitalize bg-blue-500/20 text-blue-400">
+                          {client.plan || 'trial'}
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs">

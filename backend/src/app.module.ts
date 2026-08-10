@@ -12,6 +12,7 @@ import { BookingModule } from './modules/booking/booking.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { IntakeModule } from './modules/intake/intake.module';
+import { UsageModule } from './modules/usage/usage.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { IntakeModule } from './modules/intake/intake.module';
     // TenantModule MUST be imported first — it's @Global() and provides
     // TenantService + TenantGuard to all other modules
     TenantModule,
+    UsageModule,
     ChatModule,
     EmailModule,
     LeadModule,

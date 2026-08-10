@@ -13,8 +13,6 @@ async function bootstrap() {
     'https://www.webchatsales.com/',
     'https://webchatsales.com',
     'https://webchatsales.com/',
-    'https://webchatsales-uwab.vercel.app',
-    "https://webchatsales-vert.vercel.app",
   ];
 
   if (frontendUrl) {
@@ -68,8 +66,8 @@ async function bootstrap() {
 
   // Check if demo mode is enabled
   const isDemoMode = process.env.DEMO_MODE === 'true' ||
-    process.env.DEMO_MODE === '1' ||
-    (process.env.FRONTEND_URL && process.env.FRONTEND_URL.includes('webchatsales.com'));
+                     process.env.DEMO_MODE === '1' ||
+                     (process.env.FRONTEND_URL && process.env.FRONTEND_URL.includes('webchatsales.com'));
   if (isDemoMode) {
     console.log('🎭 Demo mode enabled - WebChatSales.com chatbot (no lead qualification/booking)');
   }

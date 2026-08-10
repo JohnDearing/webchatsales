@@ -5,8 +5,8 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { format } from 'date-fns';
 
 import { getAuthHeaders, handleAuthError } from '../../utils/auth';
-import { API_BASE_URL } from '@/app/config/api';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 
 interface DashboardStatsProps {
   onViewConversation: (sessionId: string) => void;
@@ -85,11 +85,52 @@ export default function DashboardStats({ onViewConversation }: DashboardStatsPro
         />
       </div>
 
+      {stats.stats.usage && (
+        <div className="border rounded-lg p-4 sm:p-6" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--ink)' }}>
+            Usage & Billing — {stats.stats.usage.planName} Plan
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <UsageMeter
+              label="Monthly Chats"
+              used={stats.stats.usage.chatsUsed}
+              limit={stats.stats.usage.chatLimit}
+              percent={stats.stats.usage.chatPercent}
+            />
+            <UsageMeter
+              label="Tokens Used"
+              used={stats.stats.usage.tokensUsed}
+              limit={stats.stats.usage.tokenLimit}
+              percent={stats.stats.usage.tokenPercent}
+            />
+            <div>
+              <p className="text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>Est. OpenAI Cost</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--emerald)' }}>
+                ${stats.stats.usage.estimatedCostUsd.toFixed(4)}
+              </p>
+              {stats.stats.usage.overageChats > 0 && (
+                <p className="text-sm mt-2" style={{ color: '#f59e0b' }}>
+                  {stats.stats.usage.overageChats} overage chats this period
+                </p>
+              )}
+              {stats.stats.usage.periodEnd && (
+                <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
+                  Resets {format(new Date(stats.stats.usage.periodEnd), 'MMM d, yyyy')}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Conversations Over Time */}
         <div className="border rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--ink)' }}>Conversations Over Time</h3>
+          {stats.trends.conversationsOverTime.length === 0 ? (
+            <p className="text-sm py-16 text-center" style={{ color: 'var(--muted)' }}>No conversations in the last 30 days</p>
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={stats.trends.conversationsOverTime}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
@@ -99,15 +140,22 @@ export default function DashboardStats({ onViewConversation }: DashboardStatsPro
               <Line type="monotone" dataKey="count" stroke="var(--emerald)" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
+          )}
         </div>
 
         {/* Leads by Status */}
         <div className="border rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--ink)' }}>Leads by Status</h3>
+          {stats.breakdowns.leadsByStatus.length === 0 ? (
+            <p className="text-sm py-16 text-center" style={{ color: 'var(--muted)' }}>No leads yet</p>
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={stats.breakdowns.leadsByStatus}
+                data={stats.breakdowns.leadsByStatus.map((item: { _id: string; count: number }) => ({
+                  name: item._id || 'unknown',
+                  count: item.count,
+                }))}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -115,6 +163,7 @@ export default function DashboardStats({ onViewConversation }: DashboardStatsPro
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="count"
+                nameKey="name"
               >
                 {stats.breakdowns.leadsByStatus.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -123,6 +172,7 @@ export default function DashboardStats({ onViewConversation }: DashboardStatsPro
               <Tooltip contentStyle={{ background: 'var(--panel)', border: '1px solid var(--line)', color: 'var(--ink)' }} />
             </PieChart>
           </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -131,6 +181,9 @@ export default function DashboardStats({ onViewConversation }: DashboardStatsPro
         {/* Tickets by Priority */}
         <div className="border rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--ink)' }}>Tickets by Priority</h3>
+          {stats.breakdowns.ticketsByPriority.length === 0 ? (
+            <p className="text-sm py-16 text-center" style={{ color: 'var(--muted)' }}>No support tickets yet</p>
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={stats.breakdowns.ticketsByPriority}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
@@ -140,11 +193,15 @@ export default function DashboardStats({ onViewConversation }: DashboardStatsPro
               <Bar dataKey="count" fill="var(--emerald)" />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
 
         {/* Payments by Status */}
         <div className="border rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden" style={{ borderColor: 'var(--line)', background: 'var(--panel)' }}>
           <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--ink)' }}>Payments by Status</h3>
+          {stats.breakdowns.paymentsByStatus.length === 0 ? (
+            <p className="text-sm py-16 text-center" style={{ color: 'var(--muted)' }}>No payments yet</p>
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={stats.breakdowns.paymentsByStatus}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
@@ -154,6 +211,7 @@ export default function DashboardStats({ onViewConversation }: DashboardStatsPro
               <Bar dataKey="count" fill="var(--emerald)" />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -224,6 +282,34 @@ function MetricCard({ title, value, subtitle, color }: { title: string; value: n
       <p className="text-sm mb-1" style={{ color: 'var(--muted)' }}>{title}</p>
       <p className="text-2xl font-bold mb-1" style={{ color }}>{value.toLocaleString()}</p>
       <p className="text-xs" style={{ color: 'var(--muted)' }}>{subtitle}</p>
+    </div>
+  );
+}
+
+function UsageMeter({
+  label,
+  used,
+  limit,
+  percent,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+  percent: number;
+}) {
+  const barColor = percent >= 100 ? '#ef4444' : percent >= 80 ? '#f59e0b' : 'var(--emerald)';
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--muted)' }}>
+        <span>{label}</span>
+        <span>{used.toLocaleString()} / {limit.toLocaleString()} ({percent}%)</span>
+      </div>
+      <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${Math.min(100, percent)}%`, background: barColor }}
+        />
+      </div>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { API_BASE_URL } from '@/app/config/api';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000';
 
 export default function BusinessInquiryForm() {
   const [formData, setFormData] = useState({
