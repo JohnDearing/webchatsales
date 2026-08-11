@@ -109,6 +109,11 @@
     if (CONFIG.clientId) {
       iframeUrl.searchParams.set('clientId', CONFIG.clientId);
     }
+    // Pass the real host page domain so live domain checks work
+    // (API Origin is webchatsales.com because chat runs in this iframe)
+    try {
+      iframeUrl.searchParams.set('parentDomain', window.location.hostname);
+    } catch (e) {}
     iframe.src = iframeUrl.toString();
     iframe.style.cssText =
       'width: 384px; height: 600px; max-width: calc(100vw - 48px); max-height: calc(100vh - 48px); border: none; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); display: none;';

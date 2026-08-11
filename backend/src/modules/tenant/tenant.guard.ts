@@ -61,13 +61,19 @@ export class TenantGuard implements CanActivate {
       );
     }
 
-    // Live clients: enforce domain whitelist when Origin/Referer is present
+    // Live clients: enforce domain whitelist.
+    // Embeds run inside a WebChatSales iframe, so browser Origin is the platform host —
+    // validate x-parent-domain (real client site) in that case.
     if (tenant.status === 'live') {
       const origin = request.headers.origin || request.headers.referer;
-      if (origin) {
+      const parentDomain =
+        (request.headers['x-parent-domain'] as string | undefined) ||
+        (request.headers['x-embed-host'] as string | undefined);
+      if (origin || parentDomain) {
         const domainValid = await this.tenantService.validateLiveTenantDomain(
           tenant.clientId,
-          origin as string,
+          origin as string | undefined,
+          parentDomain,
         );
         if (!domainValid) {
           throw new ForbiddenException(

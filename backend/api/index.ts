@@ -28,7 +28,7 @@ async function getApp(): Promise<INestApplication> {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-widget-key', 'x-client-id'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-widget-key', 'x-client-id', 'x-parent-domain', 'x-embed-host'],
     });
 
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

@@ -50,7 +50,7 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-widget-key', 'x-client-id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-widget-key', 'x-client-id', 'x-parent-domain', 'x-embed-host'],
   });
 
   // Enable validation pipes

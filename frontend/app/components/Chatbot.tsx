@@ -35,12 +35,28 @@ const getTenantHeaders = (): Record<string, string> => {
     DEFAULT_WIDGET_KEY;
   const clientId = params.get('clientId') || params.get('wcs_client_id');
 
+  // Real client site when chat runs inside the WebChatSales iframe embed
+  let parentDomain =
+    params.get('parentDomain') ||
+    params.get('embedHost') ||
+    '';
+  if (!parentDomain && document.referrer) {
+    try {
+      parentDomain = new URL(document.referrer).hostname;
+    } catch {
+      parentDomain = '';
+    }
+  }
+
   const headers: Record<string, string> = {};
   if (widgetKey) {
     headers['x-widget-key'] = widgetKey;
   }
   if (clientId) {
     headers['x-client-id'] = clientId;
+  }
+  if (parentDomain) {
+    headers['x-parent-domain'] = parentDomain;
   }
 
   return headers;

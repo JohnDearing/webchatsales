@@ -717,18 +717,63 @@ export class TenantService {
   }
 
   /**
-   * Validate tenant domain for live clients (strict enforcement)
+   * True when the request Origin is the WebChatSales app (iframe/preview host),
+   * not the client's own website.
+   */
+  isPlatformHostDomain(domainOrUrl?: string): boolean {
+    const normalized = this.normalizeDomain(domainOrUrl);
+    if (!normalized) return false;
+
+    const hosts = new Set<string>();
+    for (const d of config.site.marketingDomains) {
+      const n = this.normalizeDomain(d);
+      if (n) hosts.add(n);
+    }
+    // Vercel frontend alias used in production
+    hosts.add('webchatsales-vert.vercel.app');
+
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (frontendUrl) {
+      const n = this.normalizeDomain(frontendUrl);
+      if (n) hosts.add(n);
+    }
+
+    return hosts.has(normalized);
+  }
+
+  /**
+   * Validate tenant domain for live clients (strict enforcement).
+   *
+   * When chat runs in the platform iframe, browser Origin is webchatsales.com —
+   * use parentDomain (from x-parent-domain) as the real client site to check.
    */
   async validateLiveTenantDomain(
     clientId: string | Types.ObjectId,
     originOrReferer?: string,
+    parentDomain?: string,
   ): Promise<boolean> {
-    const domain = this.extractRequestDomain(originOrReferer);
-    if (!domain) {
-      // No origin — allow (same-origin or server-side)
+    const originDomain = this.extractRequestDomain(originOrReferer);
+    const parent = this.normalizeDomain(parentDomain);
+
+    // Iframe / preview hosted on WebChatSales
+    if (originDomain && this.isPlatformHostDomain(originDomain)) {
+      if (!parent || this.isPlatformHostDomain(parent)) {
+        // Dashboard preview on platform host
+        return true;
+      }
+      return this.validateDomain(clientId, parent);
+    }
+
+    if (!originDomain) {
+      // No Origin — if parent domain provided, still enforce it
+      if (parent) {
+        if (this.isPlatformHostDomain(parent)) return true;
+        return this.validateDomain(clientId, parent);
+      }
       return true;
     }
-    return this.validateDomain(clientId, domain);
+
+    return this.validateDomain(clientId, originDomain);
   }
 
   private async addActivationLog(
