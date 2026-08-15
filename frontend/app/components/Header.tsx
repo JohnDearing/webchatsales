@@ -32,12 +32,21 @@ export default function Header() {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => router.push('/intake')}
-            className="shrink-0 self-start sm:self-center px-4 py-2 rounded text-sm text-black font-medium bg-gradient-emerald hover:opacity-90 transition-opacity"
-          >
-            Start Onboarding
-          </button>
+          <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+            <button
+              onClick={() => router.push('/troubleshooting')}
+              className="px-3 py-2 rounded text-sm font-medium border hover:opacity-90 transition-opacity"
+              style={{ borderColor: 'var(--line)', color: 'var(--muted)' }}
+            >
+              Help
+            </button>
+            <button
+              onClick={() => router.push('/intake')}
+              className="px-4 py-2 rounded text-sm text-black font-medium bg-gradient-emerald hover:opacity-90 transition-opacity"
+            >
+              Start Onboarding
+            </button>
+          </div>
         </div>
       </div>
     </header>

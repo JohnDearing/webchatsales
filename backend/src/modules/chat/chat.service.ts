@@ -969,9 +969,9 @@ Respond with JSON: {"isInvalid": true/false, "reason": "brief explanation"}`;
     let hasBuyingIntent = lead?.hasBuyingIntent || false;
     
     if (!hasBuyingIntent) {
-      // Fast pattern-based detection - no AI call needed for obvious cases
-      const strongBuyingPatterns = /\b(sign me up|let's do it|i want to sign up|i'm ready|let's start|yes let's|yeah let's|i'll try it|sounds good let's|let's go|i'm in|count me in|how much|what's the price|what's the cost|how do i pay|ready to buy|want to purchase)\b/i;
-      const weakPatterns = /\b(what information|what do you need|tell me what you need|how do i get started|what's required)\b/i;
+      // Strong close signals only — price questions are NOT buying intent
+      const strongBuyingPatterns = /\b(sign me up|let's do it|i want to sign up|i'm ready to start|yes let's|yeah let's|i'll try it|sounds good let's|let's go|i'm in|count me in|how do i pay|ready to buy|want to purchase|take my card|set me up)\b/i;
+      const weakPatterns = /\b(what information|what do you need|tell me what you need|how do i get started|what's required|how much|what's the price|what's the cost|pricing)\b/i;
       
       const messageLower = userMessage.toLowerCase();
       const isStrongIntent = strongBuyingPatterns.test(messageLower);
@@ -1027,7 +1027,7 @@ Respond with JSON: {"isInvalid": true/false, "reason": "brief explanation"}`;
     const hasNumbersForPainCalc = !!(lead?.leadsPerWeek && lead?.dealValue);
     
     if (hasBuyingIntent && hasBasicQualification) {
-      // Only skip to buying_intent if we have qualification data
+      // Clear signup intent — allow setup/close path
       conversationPhase = 'buying_intent';
     } else if (hasBuyingIntent && !hasBasicQualification) {
       // Buying intent detected but no qualification - continue qualification first
@@ -1040,8 +1040,10 @@ Respond with JSON: {"isInvalid": true/false, "reason": "brief explanation"}`;
     } else if (!hasNumbersForPainCalc) {
       // Phase 2: Still need leads/week + deal value to calculate pain
       conversationPhase = 'discovery';
+    } else if (!lead?.email) {
+      // Have numbers — stay in value/objection work. Do NOT force close every turn.
+      conversationPhase = 'qualification';
     } else {
-      // Phase 3→4: Have the numbers — AI calculates pain, then closes
       conversationPhase = 'closing';
     }
     
